@@ -54,22 +54,23 @@ class ThreadCrawler(Crawler):
         self.__thread["Topics"] = []
     
     def __main(self):
+        max_page = 1
         page= 1
-        while 1:
+        while page <= max_page:
             print("Page"+str(page)+" start!")
             url = "https://forum.gamer.com.tw/C.php?page="+str(page)+"&bsn="+self.__board_id+"&snA="+self.__topic_id
             res = self._crawl(url)
             res = bsp(res.text.strip(), "html.parser")
-            if res.select_one(".next.no") != None:
-                break
+            if page == 1:
+                max_page = int(res.select(".BH-pagebtnA > a")[-1].text)
             topics = res.select(".c-section__main.c-post")
             if page == 1:
                 self.__thread["Title"] = topics[0].select_one(".c-post__header__title").text
             for t in topics:
                 topic = {}
-                topic["Author"] = t.select_one(".userid").text.replace("\n", "")
-                topic["Time"] = t.select_one(".edittime.tippy-post-info").text.replace("\n", "")
-                topic["Contents"] = t.select_one(".c-article__content").text.replace("\n", "")
+                topic["Author"] = t.select_one(".userid").text.replace("\n", "").replace("\xa0", " ")
+                topic["Time"] = t.select_one(".edittime.tippy-post-info")["data-mtime"]
+                topic["Contents"] = t.select_one(".c-article__content").text.replace("\n", "").replace("\xa0", " ")
                 has_more_messages = t.select_one(".c-reply__head.nocontent")
                 if has_more_messages != None:
                     message_id = has_more_messages.select_one(".more-reply")["id"][15:]
@@ -81,7 +82,7 @@ class ThreadCrawler(Crawler):
                         message = {}
                         message["Author"] = replys[i].select_one(".gamercard")["data-gamercard-userid"]
                         message["Time"] = replys[i].select(".edittime")[1]["title"][5:]
-                        message["Contents"] = replys[i].select_one(".comment_content").text.replace("\n", "")
+                        message["Contents"] = replys[i].select_one(".comment_content").text.replace("\n", "").replace("\xa0", " ")
                         messages.append(message)
                     topic["Messages"] = messages
                 self.__thread["Topics"].append(topic)
@@ -98,7 +99,7 @@ class ThreadCrawler(Crawler):
             message_bsp = bsp(res[i].strip(), "html.parser")
             message["Author"] = message_bsp.select_one(".gamercard")["data-gamercard-userid"]
             message["Time"] = message_bsp.select(".edittime")[1]["title"][5:]
-            message["Contents"] = message_bsp.select_one(".comment_content").text.replace("\n", "")
+            message["Contents"] = message_bsp.select_one(".comment_content").text.replace("\n", "").replace("\xa0", " ")
             messages.append(message)
         return messages
 
