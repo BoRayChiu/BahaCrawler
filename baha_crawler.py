@@ -232,7 +232,3 @@ class ThreadCrawler(Crawler):
         """
         self.__main()
         return self.__thread
-    
-if __name__ == "__main__":
-    t = ThreadCrawler("38898", "3980")
-    print(t.result)
