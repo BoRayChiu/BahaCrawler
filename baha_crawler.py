@@ -32,7 +32,7 @@ class Crawler:
         Returns:
             HTML docs which type is sting.
             For example:
-            "<div>Hello!</div>"
+            '<div>Hello!</div>'
         """
         crawl_res = rq.post(url=url, headers=self._headers)
         crawl_res.encoding = "utf-8"
@@ -53,10 +53,17 @@ class TopicIdCrawler(Crawler):
         super().__init__()
         self.__board_id = board_id
         self.__frequency = frequency
-        self.__topic_urls = []
+    
+    @property
+    def result(self):
+        """Get topic urls from crawl result and return it.
 
-    def __main(self):
-        """Get topic urls from crawl result."""
+        Returns:
+            A list is formed with topic url.
+            For example:
+                ['bsn=38898&snA=3980&tnum=1']
+        """
+        topic_urls = []
         page = 1
         for i in range(self.__frequency):
             url = "".join(
@@ -73,21 +80,9 @@ class TopicIdCrawler(Crawler):
                 ".b-list__row.b-list-item.b-imglist-item > .b-list__main > a")
             # Append topic url.
             for t in index:
-                self.__topic_urls.append(t["href"])
+                topic_urls.append(t["href"])
             page += 1
-
-    @property
-    def result(self):
-        """Return topic urls.
-        
-        Returns:
-            A list is formed with topic url.
-        For example:
-            ["bsn=38898&snA=3980&tnum=1"]
-        """ 
-        self.__main()
-        return self.__topic_urls
-
+        return topic_urls
 
 class ThreadCrawler(Crawler):
     """Get all content we want in chat thread.
@@ -102,11 +97,34 @@ class ThreadCrawler(Crawler):
         super().__init__()
         self.__board_id = board_id
         self.__topic_id = topic_id
-        self.__thread = {}
-        self.__thread["Topics"] = []
 
-    def __main(self):
-        """Get all content we want from crawl result."""
+    @property
+    def result(self):
+        """Get all content we want from crawl result and return it.
+
+        Returns:
+            A dicts keys that are category and values are information.
+            For example: 
+                {
+                    'Title': 'Hello World!'
+                    'Topics': [
+                        {
+                            'Author': 'abc123', 
+                            'Time': '2023-03-28 00:01:05', 
+                            'Contents': 'Hello World HAHA', 
+                            'Messages': [
+                                {
+                                    'Author': 'cba321', 
+                                    'Time': '2023-03-29 23:51:42', 
+                                    'Contents': 'HAHA'
+                                }
+                            ]
+                        }
+                    ]
+                }
+        """
+        thread = {}
+        thread["Topics"] = []
         # Set max_page the smallest number.
         max_page = 1
         page = 1
@@ -133,7 +151,7 @@ class ThreadCrawler(Crawler):
             topics = res.select(".c-section__main.c-post")
             # If page is current 1, store 'Title'
             if (page == 1):
-                self.__thread["Title"] = topics[0].select_one(
+                thread["Title"] = topics[0].select_one(
                     ".c-post__header__title").text
             for t in topics:
                 topic = {}
@@ -171,11 +189,13 @@ class ThreadCrawler(Crawler):
                         messages.append(message)
                     # Get all Message in 'Messages'
                     topic["Messages"] = messages
-                self.__thread["Topics"].append(topic)
+                thread["Topics"].append(topic)
             page += 1
             print("Waiting...")
             # To avoid trouble.
             time.sleep(10)
+        print("==========")
+        return thread
 
     def __crawl_more_messages(self, message_id: str):
         """Get messages if there are more messages button"""
@@ -204,31 +224,3 @@ class ThreadCrawler(Crawler):
                 ".comment_content").text.replace("\n", "").replace("\xa0", " ")
             messages.append(message)
         return messages
-
-    @property
-    def result(self):
-        """Return chat thread.
-
-        Returns:
-            A dicts keys that are category and values are information.
-        For example: 
-            {
-                'Title': 'Hello World!'
-                'Topics': [
-                    {
-                        'Author': 'abc123', 
-                        'Time': '2023-03-28 00:01:05', 
-                        'Contents': 'Hello World HAHA', 
-                        'Messages': [
-                            {
-                                'Author': 'cba321', 
-                                'Time': '2023-03-29 23:51:42', 
-                                'Contents': 'HAHA'
-                            }
-                        ]
-                    }
-                ]
-            }
-        """
-        self.__main()
-        return self.__thread
